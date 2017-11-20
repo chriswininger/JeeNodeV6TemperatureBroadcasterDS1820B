@@ -3,6 +3,7 @@
 #include <OneWire.h> 
 #include <DallasTemperature.h>
 
+#define TRANSMIT_INTERVAL 30 // interval in minutes
 #define VERSION "0.0.1"
 #define FILTERSETTLETIME 5000 
 #define ONE_WIRE_BUS 4
@@ -20,7 +21,7 @@ DallasTemperature sensors(&oneWire);
 Port battPort (BATT_SENSE_PORT);
 
 // define structure rf12 packets
-typedef struct { int tempDS1820B; } Payload;
+typedef struct { float tempDS1820B; } Payload;
 Payload payload;
 
 void setup() {
@@ -44,14 +45,10 @@ void setup() {
 void loop() {
      // read the current temperature from the DS1820B sensor
      sensors.requestTemperatures();
-    /*
-     Multiply temeprature reading which is float by 100 and cast to integer for broadcast
-      On the other end we can can /100.0 to cast back to float. It is not an issue for
-      RFM12B to broadcast floats, but EMONCMS which is used for our receiver has this
-    */
-    payload.tempDS1820B = sensors.getTempCByIndex(0) * 100;
+    payload.tempDS1820B = sensors.getTempCByIndex(0);
+
     Serial.print("Temperature: ");
-    Serial.print(payload.tempDS1820B/100.0);
+    Serial.print(payload.tempDS1820B);
 
     // === working on sensing battery health ===
     /*
@@ -71,7 +68,8 @@ void loop() {
 
      if (settled) {
       send_rf_data(payload);
+      delay(1000 * TRANSMIT_INTERVAL);
+    } else {
+      delay(500);  
     }
-
-    delay(1000);
 }
