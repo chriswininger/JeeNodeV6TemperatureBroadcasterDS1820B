@@ -3,11 +3,13 @@
 #include <OneWire.h> 
 #include <DallasTemperature.h>
 
-#define TRANSMIT_INTERVAL 30 // interval in minutes
+#define DEBUG 1
+#define TRANSMIT_INTERVAL 2 // interval in minutes
 #define VERSION "0.0.1"
 #define FILTERSETTLETIME 5000 
 #define ONE_WIRE_BUS 4
-#define SET_NODE 4     // wireless node ID 
+// #define SET_NODE 4     // Node ID for garden
+#define SET_NODE 3 // Node ID for outdoor temp
 #define SET_GROUP 210    // wireless net group 
 #define SEND_MODE      2     // set to 3 if fuses are e=06/h=DE/l=CE, else set to 2
 #define FILTERSETTLETIME 5000 //  Time (ms) to allow the filters to settle before sending data
@@ -26,14 +28,16 @@ Payload payload;
 
 void setup() {
   Serial.begin(57600);
-  Serial.print("JeeNode Temp Sensor -- v");
-  Serial.print(VERSION);
-  Serial.println(); 
-  Serial.print("Node: "); 
-  Serial.print(SET_NODE);
-  Serial.print(", Network: "); 
-  Serial.println(SET_GROUP);
 
+  if (DEBUG) {
+    Serial.print("JeeNode Temp Sensor -- v");
+    Serial.print(VERSION);
+    Serial.println(); 
+    Serial.print("Node: "); 
+    Serial.print(SET_NODE);
+    Serial.print(", Network: "); 
+    Serial.println(SET_GROUP);
+  }
   // initialize the RFM12B for wireless transmission
   rf12_initialize(SET_NODE, RF12_433MHZ, SET_GROUP);
   rf12_sleep(RF12_SLEEP);
@@ -43,32 +47,29 @@ void setup() {
 }
 
 void loop() {
-     // read the current temperature from the DS1820B sensor
-     sensors.requestTemperatures();
+    // read the current temperature from the DS1820B sensor
+    sensors.requestTemperatures();
     payload.tempDS1820B = sensors.getTempCByIndex(0);
 
-    Serial.print("Temperature: ");
-    Serial.print(payload.tempDS1820B);
+    if(DEBUG) {
+      Serial.print("Temperature: ");
+      Serial.print(payload.tempDS1820B);
+      Serial.println("");
+    }
 
-    // === working on sensing battery health ===
-    /*
-    payload.battVolts = readBatt();
-    Serial.print(", Battery: ");
-    Serial.print(payload.battVolts);*/
-  
-    Serial.println("");                                         
-  
     delay(100);
 
     // because millis() returns to zero after 50 days ! 
     if (!settled && millis() > FILTERSETTLETIME) {
-      Serial.println("Settled, begin broadcast");
+      if (DEBUG) {
+        Serial.println("Settled, begin broadcast");
+      }
       settled = true;
     }
 
      if (settled) {
       send_rf_data(payload);
-      delay(1000 * TRANSMIT_INTERVAL);
+      delay(60000 * TRANSMIT_INTERVAL);
     } else {
       delay(500);  
     }
