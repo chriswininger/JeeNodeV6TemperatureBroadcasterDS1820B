@@ -2,6 +2,7 @@
 #include <RF12sio.h> 
 #include <OneWire.h> 
 #include <DallasTemperature.h>
+#include "avr/sleep.h"
 
 #define DEBUG 1
 #define TRANSMIT_INTERVAL 2 // interval in minutes
@@ -14,7 +15,9 @@
 #define SEND_MODE      2     // set to 3 if fuses are e=06/h=DE/l=CE, else set to 2
 #define FILTERSETTLETIME 5000 //  Time (ms) to allow the filters to settle before sending data
 #define BATT_SENSE_PORT 2    // sense battery voltage on this port
+
 boolean settled = false;
+long loopWaitMS = 60000 * TRANSMIT_INTERVAL;
 
 // setup to read sensor data on Port1 D
 OneWire oneWire(ONE_WIRE_BUS); 
@@ -32,7 +35,7 @@ void setup() {
   if (DEBUG) {
     Serial.print("JeeNode Temp Sensor -- v");
     Serial.print(VERSION);
-    Serial.println(); 
+    Serial.println();
     Serial.print("Node: "); 
     Serial.print(SET_NODE);
     Serial.print(", Network: "); 
@@ -69,7 +72,9 @@ void loop() {
 
      if (settled) {
       send_rf_data(payload);
-      delay(60000 * TRANSMIT_INTERVAL);
+
+      // explicit delay to reduce power consumption
+      mySleep(loopWaitMS);
     } else {
       delay(500);  
     }

@@ -1,3 +1,5 @@
+#include "avr/sleep.h"
+
 void send_rf_data(Payload _payload)
 {
   rf12_sleep(RF12_WAKEUP);
@@ -19,3 +21,20 @@ static byte readBatt() {
     return  (byte) map(value,0,1013,0,330);
 }
 
+void mySleep(long delayMS) {
+  setPrescaler(6); // prescaler 64
+  long limit = millis() + delayMS/64;
+  while (millis() < limit) {
+    set_sleep_mode(SLEEP_MODE_IDLE);
+    sleep_mode();
+  }
+
+  setPrescaler(0); // prescaler off
+}
+
+void setPrescaler (uint8_t mode) {
+  cli();
+  CLKPR = bit(CLKPCE);
+  CLKPR = mode;
+  sei();
+}
